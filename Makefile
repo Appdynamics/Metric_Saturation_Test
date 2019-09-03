@@ -22,6 +22,7 @@ CFLAGS      = -g
 # includes
 SDK_INC     = -I$(SDK_INC_DIR)
 
+# For Centos7 add the following to the LDFLAGS define:   -lrt -lpthred
 LDFLAGS         = -lz -lappdynamics -ldl 
 SDK_LOAD_PATH	= LD_LIBRARY_PATH=$(SDK_LIB_DIR)
 
