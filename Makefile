@@ -22,8 +22,7 @@ CFLAGS      = -g
 # includes
 SDK_INC     = -I$(SDK_INC_DIR)
 
-# For Centos7 add the following to the LDFLAGS define:   -lrt 
-LDFLAGS         = -lz -lappdynamics -ldl -lpthread
+LDFLAGS         = -lz -lappdynamics -ldl -lpthread -lrt
 SDK_LOAD_PATH	= LD_LIBRARY_PATH=$(SDK_LIB_DIR)
 
 # Citadel basic params: at a minimum you must provide the host, port, account, and key fields.
