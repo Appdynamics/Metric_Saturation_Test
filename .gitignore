@@ -2,6 +2,7 @@
 SaturationTest
 SaturationTest.dSYM
 .gitignore
+saturationtest
 
 *.swp
 extlibs
