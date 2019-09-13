@@ -8,10 +8,12 @@
 // ******                                                                                                ******
 // ****** This program is example code only.  There is no warranties implied or otherwise regarding its  ******
 // ****** performance.  AppDynamics is not responsible for its use, nor any consequence of its use.      ******
+// ****** HEY, THIS HAS BEEN HACKED A BUNCH AND IS NOW THROW AWAY CODE.  BE CAREFUL WHEN YOU USE IT.     ******
 // ******                                                                                                ******
 // ************************************************************************************************************
 
 #include <stdio.h>
+#include <string.h>
 #include <stdlib.h>
 #include <unistd.h>
 #include <stdarg.h>
@@ -22,8 +24,8 @@
 #define FALSE (1==0)
 #define TRUE  (1==1)
 
-#define SATURATION_NODE_NAME      "Saturation_Node______________________"
-#define SATURATION_NODE_OFFSET    17
+#define SATURATION_NODE_NAME      "Saturation_Node_"
+#define SATURATION_CONTEXT        "saturation_context_"
 
 #define CUSTOM_METRIC_PATH        "Custom Metrics|Metric_________________________________________________________________"
 #define CUSTOM_METRIC_OFFSET      25
@@ -34,7 +36,6 @@
 #define SATURATION_BT_NAME        "Saturation_BT_______________________________________________________________"
 #define SATURATION_BT_OFFSET      15
 
-#define SATURATION_CONTEXT        "saturation_context"
 #define APP_NAME                  "Metric_Saturation_Test_App"
 #define TIER_NAME                 "Metric_Saturation_Tier"
 #define DEFAULT_NODE_NAME         "Default_Node"
@@ -45,6 +46,7 @@
 #define PROXY_PORT                9191
 #define METRICS                   100
 #define CYCLES                    10
+#define NODES                     100
 #define INIT_TIMEOUT              60000
 #define CYCLE_DELAY               60
 #define REVIEW_DELAY              5
@@ -79,8 +81,10 @@ int main(int argc, char** argv)
 
 	long  metrics = METRICS;
 	long  cycles = CYCLES;
+	long  nodes = NODES;
 	long  metric = 0;
 	long  cycle = 0;
+	long  node = 0;
 
 	unsigned long  controller_port = CONTROLLER_PORT;
 	unsigned long  proxy_port = PROXY_PORT;
@@ -98,7 +102,9 @@ int main(int argc, char** argv)
 	char*          app_name = APP_NAME; 
 	char*          tier_name = TIER_NAME; 
 	char*          default_node_name = DEFAULT_NODE_NAME; 
-	char           saturation_node_name[] = SATURATION_NODE_NAME;
+
+	char*          saturation_node_name[NODES];
+	char*          saturation_context[NODES];
 
 	char*          proxy_host = NULL;
 	char*          proxy_user = NULL;
@@ -106,7 +112,6 @@ int main(int argc, char** argv)
 	char*          proxy_pswd_file = NULL;
 
 	char*          access_key = DEFAULT_ACCESS_KEY; 
-	const char*    saturation_context = SATURATION_CONTEXT;
 
 	if (argc > 1)
 	{
@@ -155,7 +160,17 @@ int main(int argc, char** argv)
 		info("Setting Metrics to %ld (argv[6] was \"%s\") \n", metrics, argv[6]);
 	}
 
-	sprintf(&saturation_node_name[SATURATION_NODE_OFFSET], "%d%c", getpid(),0);
+	if (argc > 7)
+	{
+		nodes = atol(argv[7]);
+		if (nodes  == 0 || nodes  > NODES)
+		{
+			info("Error: nodes (%ld) exceeds range (%ld).  Setting to 1", nodes, NODES);
+			nodes = NODES;
+		}
+		info("Setting Nodes Created to %ld (argv[7] was \"%s\") \n", nodes, argv[7]);
+	}
+
 
 	info("Controller Wait Timeout is %d seconds\n", (init_timeout/1000)); 
 	info("Controller Host is \"%s\"\n",             controller_host);
@@ -164,7 +179,6 @@ int main(int argc, char** argv)
 	info("Controller Application is \"%s\"\n",      app_name);
 	info("Controller Tier is \"%s\"\n",             tier_name);
 	info("Controller Default Node is \"%s\"\n",     default_node_name);
-	info("Controller Saturation Node is \"%s\"\n",  saturation_node_name);
 	info("Controller Node is \"%s\"\n",             default_node_name);
 	info("Controller Account Name is \"%s\"\n",     acct_name);
 	info("Controller License is \"%s\"\n",          access_key);
@@ -207,24 +221,34 @@ int main(int argc, char** argv)
 	   appd_config_set_controller_http_proxy_password_file(cfg, proxy_pswd_file);
 	}
 
-	struct appd_context_config* saturation_cfg = appd_context_config_init(saturation_context);
-	appd_context_config_set_controller_host(      saturation_cfg, controller_host);
-	appd_context_config_set_controller_port(      saturation_cfg, controller_port & 0xFFFF);
-	appd_context_config_set_controller_account(   saturation_cfg, acct_name);
-	appd_context_config_set_controller_access_key(saturation_cfg, access_key);
-	appd_context_config_set_controller_use_ssl(   saturation_cfg, use_SSL);
-	appd_context_config_set_app_name(             saturation_cfg, app_name);
-	appd_context_config_set_tier_name(            saturation_cfg, tier_name);
-	appd_context_config_set_node_name(            saturation_cfg, saturation_node_name);
-
-	info("About to call appd_sdk_add_app_context()...\n");
-
-	rc = appd_sdk_add_app_context(saturation_cfg);
-
-	if (rc != 0)
+	info("Creating %d Saturation Nodes & Contexts...\n", nodes);
+	for (node = 0; node < nodes; node++)
 	{
-	   info("appd_sdk_add_app_context() failed!\n");
-	   exit(1);
+		saturation_node_name[node] = malloc(strlen(SATURATION_NODE_NAME) + 20);
+		sprintf(saturation_node_name[node], "%s%d_%ld%c", SATURATION_NODE_NAME, getpid(), node, 0);
+
+		saturation_context[node] = malloc(strlen(SATURATION_NODE_NAME) + 20);
+		sprintf(saturation_context[node], "%s_%ld%c", SATURATION_NODE_NAME, node, 0);
+
+		info("Saturation Node: %ld \"%s\" Context: \"%s\"\n",  node, saturation_node_name[node], saturation_context[node]);
+
+		struct appd_context_config* saturation_cfg = appd_context_config_init(saturation_context[node]);
+		appd_context_config_set_controller_host(      saturation_cfg, controller_host);
+		appd_context_config_set_controller_port(      saturation_cfg, controller_port & 0xFFFF);
+		appd_context_config_set_controller_account(   saturation_cfg, acct_name);
+		appd_context_config_set_controller_access_key(saturation_cfg, access_key);
+		appd_context_config_set_controller_use_ssl(   saturation_cfg, use_SSL);
+		appd_context_config_set_app_name(             saturation_cfg, app_name);
+		appd_context_config_set_tier_name(            saturation_cfg, tier_name);
+		appd_context_config_set_node_name(            saturation_cfg, saturation_node_name[node]);
+	
+		rc = appd_sdk_add_app_context(saturation_cfg);
+	
+		if (rc != 0)
+		{
+	   	info("appd_sdk_add_app_context() failed for node %ld!\n", node);
+	   	exit(1);
+		}
 	}
 
 	info("About to call appd_sdk_init(), waiting up to %d seconds for Controller response...\n", (init_timeout/1000));
@@ -239,58 +263,54 @@ int main(int argc, char** argv)
 
 	info("\nInitialization complete, now registering metrics...\n\n");
 
-	for (metric = 1; metric <= metrics; metric++)
+	for (node = 0; node < nodes; node++)
 	{
-		char metric_path[] = CUSTOM_METRIC_PATH; 
-		sprintf(&metric_path[CUSTOM_METRIC_OFFSET ], "%ld%c", metric, 0);
-
-		info("appd_custom_metric_add(\"%s\", \"%s\", %d, %d, %d)\n", saturation_context, metric_path, 
-			APPD_TIMEROLLUP_TYPE_AVERAGE, APPD_CLUSTERROLLUP_TYPE_INDIVIDUAL,  APPD_HOLEHANDLING_TYPE_RATE_COUNTER);
-
-		appd_custom_metric_add (saturation_context, metric_path, 
-			APPD_TIMEROLLUP_TYPE_AVERAGE, APPD_CLUSTERROLLUP_TYPE_INDIVIDUAL,  APPD_HOLEHANDLING_TYPE_RATE_COUNTER);
+		for (metric = 1; metric <= metrics; metric++)
+		{
+			char metric_path[] = CUSTOM_METRIC_PATH; 
+			sprintf(&metric_path[CUSTOM_METRIC_OFFSET ], "%ld%c", metric, 0);
+	
+			info("appd_custom_metric_add(\"%s\", \"%s\", %d, %d, %d)\n", saturation_context[node], metric_path, 
+				APPD_TIMEROLLUP_TYPE_AVERAGE, APPD_CLUSTERROLLUP_TYPE_INDIVIDUAL,  APPD_HOLEHANDLING_TYPE_RATE_COUNTER);
+	
+			appd_custom_metric_add (saturation_context[node], metric_path, 
+				APPD_TIMEROLLUP_TYPE_AVERAGE, APPD_CLUSTERROLLUP_TYPE_INDIVIDUAL,  APPD_HOLEHANDLING_TYPE_RATE_COUNTER);
+		}
 	}
 
 	info("\nMetric registration complete, now creating custom metrics and BTs...\n\n");
 
 	for (cycle = 1; cycle <= cycles; cycle++)
 	{
+		// Default Node & BT
 		char default_bt_name[]    = DEFAULT_BT_NAME; 
-		char saturation_bt_name[] = SATURATION_BT_NAME; 
-	
 		sprintf(&default_bt_name[DEFAULT_BT_OFFSET], "%ld%c", (cycle % 4), 0);
-		sprintf(&saturation_bt_name[SATURATION_BT_OFFSET], "%ld%c", (cycle % 32), 0);
-	
 		info("Calling appd_bt_begin(\"%s\", NULL)...", default_bt_name);
 		bt_handle = appd_bt_begin(default_bt_name, NULL);
 		info("handle = %p\n", bt_handle);
-		
-		info("Calling appd_bt_begin_with_app_context(\"%s\", \"%s\", NULL)...", saturation_context, saturation_bt_name);
-		saturation_bt_handle = appd_bt_begin_with_app_context(saturation_context, saturation_bt_name, NULL);
-		info("handle = %p\n\n", saturation_bt_handle);
-	
-		for (metric = 1; metric <= metrics; metric++)
-		{
-			char metric_path[] = CUSTOM_METRIC_PATH;
-	
-			sprintf(&metric_path[CUSTOM_METRIC_OFFSET], "%ld%c", metric, 0);
-	
-			appd_custom_metric_report(saturation_context, metric_path, metric);
-	
-			info("appd_custom_metric_report(\"%s\", \"%s\", %ld)\n", saturation_context, metric_path, metric);
-		}
-	
-		appd_bt_end(saturation_bt_handle);
 		appd_bt_end(bt_handle);
+		
+		for (node = 1; node < nodes; node++)
+		{
+			info("Creating Metrics for Node %ld\n", node);
+			for (metric = 1; metric <= metrics; metric++)
+			{
+				char metric_path[] = CUSTOM_METRIC_PATH;
+				sprintf(&metric_path[CUSTOM_METRIC_OFFSET], "%ld%c", metric, 0);
+				appd_custom_metric_report(saturation_context[node], metric_path, metric);
+				info("appd_custom_metric_report(\"%s\", \"%s\", %ld)\n", saturation_context[node], metric_path, metric);
+			}
+		}
+
 	
 		info("Cycle %ld Completed, sleeping %d seconds before continuing...\n", cycle, cycle_delay);
 		sleep(cycle_delay);
 	}
 
 	info("\nCycles completed.\n");
-	info("Created %ld custom metrics, ran %ld cycles.\n", metrics, cycles);
-	info("Created %ld unique Default BTS, sent 1 BT begin/end pair per cycle.\n", (cycles < 4) ? cycles : 4);
-	info("Created %ld unique Saturation BTS, sent 1 BT begin/end pair per cycle.\n", (cycles < 32) ? cycles : 32);
+	info("Created %ld unique Saturation Nodes.\n", nodes);
+	info("Created %ld custom metrics across %ld nodes, ran %ld cycles.\n", metrics, nodes, cycles);
+	info("Created %ld Default BTs, sent 1 BT begin/end pair per cycle.\n", (cycles < 4) ? cycles : 4);
 	info("Waiting for SDK (libagent) to finish flushing to Controller.\n");
 	info("This can take between one and two minutes to complete...\n");
 	sleep(1);
