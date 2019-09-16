@@ -163,7 +163,7 @@ int main(int argc, char** argv)
 	if (argc > 7)
 	{
 		nodes = atol(argv[7]);
-		if (nodes  == 0 || nodes  > NODES)
+		if (nodes  == 0 || nodes > NODES)
 		{
 			info("Error: nodes (%ld) exceeds range (%ld).  Setting to 1", nodes, NODES);
 			nodes = NODES;
@@ -290,7 +290,7 @@ int main(int argc, char** argv)
 		info("handle = %p\n", bt_handle);
 		appd_bt_end(bt_handle);
 		
-		for (node = 1; node < nodes; node++)
+		for (node = 0; node < nodes; node++)
 		{
 			info("Creating Metrics for Node %ld\n", node);
 			for (metric = 1; metric <= metrics; metric++)
