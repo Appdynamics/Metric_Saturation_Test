@@ -25,13 +25,13 @@ SDK_INC     = -I$(SDK_INC_DIR)
 LDFLAGS         = -lz -lappdynamics -ldl -lpthread -lrt
 SDK_LOAD_PATH	= LD_LIBRARY_PATH=$(SDK_LIB_DIR)
 
-# Citadel basic params: at a minimum you must provide the host, port, account, and key fields.
+# basic params: at a minimum you must provide the host, port, account, and key fields.
 # Everything else will default to the values set in the code.
-# 
-#CONTROLLER_HOST=4.2.2.2
-#CONTROLLER_PORT=8080
-#CONTROLLER_ACCESS=abcde12345
-#CONTROLLER_ACCOUNT=customer1
+# To do so, set the following env vars to something appropriate for your controller. 
+# export CONTROLLER_HOST=4.2.2.2
+# export CONTROLLER_PORT=8080
+# export CONTROLLER_ACCESS=abcde12345
+# export CONTROLLER_ACCOUNT=customer1
 
 SATURATIONTEST_EXE_OPTS =  $(CONTROLLER_HOST)
 SATURATIONTEST_EXE_OPTS += $(CONTROLLER_PORT)
@@ -40,7 +40,7 @@ SATURATIONTEST_EXE_OPTS += $(CONTROLLER_ACCOUNT)
 
 all:	$(SATURATIONTEST_TEST_EXE)
 
-.PHONY: clean run params help
+.PHONY: clean params help
 
 help:
 	@echo "\nThis program will generate massive amounts of custom metrics."

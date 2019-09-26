@@ -50,6 +50,8 @@
 #define INIT_TIMEOUT              60000
 #define CYCLE_DELAY               60
 #define REVIEW_DELAY              5
+#define LOG_FILE_SIZE             (1024 * 8)
+#define MAX_LOG_FILES             1
 
 /* 
  * with reference to: https://stackoverflow.com/questions/1485805/whats-the-difference-between-the-printf-and-vprintf-function-families-and-when
@@ -73,6 +75,8 @@ int main(int argc, char** argv)
 	int            init_timeout = INIT_TIMEOUT;
 	int            cycle_delay = CYCLE_DELAY;
 	int            review_delay = REVIEW_DELAY;
+	int            max_log_files = MAX_LOG_FILES;
+	int            log_file_size = LOG_FILE_SIZE;
 	int            rc = 0;
 
 	appd_bt_handle        bt_handle = NULL;
@@ -172,6 +176,30 @@ int main(int argc, char** argv)
 	}
 
 
+	if (argc > 8)
+	{
+		log_file_size = atol(argv[8]);
+		if (log_file_size  == 0 || log_file_size > LOG_FILE_SIZE)
+		{
+			info("Error: log file size (%ld) exceeds limit (%ld)!", log_file_size, LOG_FILE_SIZE);
+			log_file_size = LOG_FILE_SIZE;
+		}
+		info("Setting log file size to %ld (argv[8] was \"%s\") \n", log_file_size, argv[8]);
+	}
+
+
+	if (argc > 9)
+	{
+		max_log_files = atol(argv[9]);
+		if (max_log_files  == 0 || max_log_files > MAX_LOG_FILES)
+		{
+			info("Error: max log files (%ld) exceeds limig (%ld)!", max_log_files, MAX_LOG_FILES);
+			max_log_files = MAX_LOG_FILES;
+		}
+		info("Setting max log files to %ld (argv[9] was \"%s\") \n", max_log_files, argv[9]);
+	}
+
+
 	info("Controller Wait Timeout is %d seconds\n", (init_timeout/1000)); 
 	info("Controller Host is \"%s\"\n",             controller_host);
 	info("Controller Port is %lu\n",                controller_port);
@@ -182,9 +210,12 @@ int main(int argc, char** argv)
 	info("Controller Node is \"%s\"\n",             default_node_name);
 	info("Controller Account Name is \"%s\"\n",     acct_name);
 	info("Controller License is \"%s\"\n",          access_key);
+	info("Max log file size is %d\n",               log_file_size);
+	info("Max number of log files is %d\n",         max_log_files);
 
-	info("\n\nCycling %ld times, creating %ld Custom Metics, with 1 BT per Node created per cycle (per minute)\n", cycles, metrics); 
-	info("\nContinuing in %d seconds...\n", review_delay);
+	info("\n");
+	info("Cycling %ld times, creating %ld Custom Metics, with 1 BT per Node created per cycle (per minute)\n", cycles, metrics); 
+	info("Continuing in %d seconds...\n", review_delay);
 	sleep(review_delay);
 	
 	cfg = appd_config_init();
@@ -205,6 +236,8 @@ int main(int argc, char** argv)
 	appd_config_set_node_name(cfg, default_node_name);
 	appd_config_set_flush_metrics_on_shutdown(cfg, TRUE);
 	appd_config_set_init_timeout_ms(cfg, init_timeout);
+	appd_config_set_logging_max_num_files(cfg, max_log_files);
+	appd_config_set_logging_max_file_size_bytes(cfg, log_file_size);
 
 	if (use_cert_file)
 	{
@@ -261,7 +294,8 @@ int main(int argc, char** argv)
 	   exit(1);
 	}
 
-	info("\nInitialization complete, now registering metrics...\n\n");
+	info("\n");
+	info("Initialization complete, now registering metrics...\n");
 
 	for (node = 0; node < nodes; node++)
 	{
@@ -278,7 +312,8 @@ int main(int argc, char** argv)
 		}
 	}
 
-	info("\nMetric registration complete, now creating custom metrics and BTs...\n\n");
+	info("\n");
+	info("Metric registration complete, now creating custom metrics and BTs...\n");
 
 	for (cycle = 1; cycle <= cycles; cycle++)
 	{
@@ -307,7 +342,8 @@ int main(int argc, char** argv)
 		sleep(cycle_delay);
 	}
 
-	info("\nCycles completed.\n");
+	info("\n");
+	info("Cycles completed.\n");
 	info("Created %ld unique Saturation Nodes.\n", nodes);
 	info("Created %ld custom metrics across %ld nodes, ran %ld cycles.\n", metrics, nodes, cycles);
 	info("Created %ld Default BTs, sent 1 BT begin/end pair per cycle.\n", (cycles < 4) ? cycles : 4);
@@ -317,7 +353,7 @@ int main(int argc, char** argv)
 
 	appd_sdk_term();
 
-	info("\n\nAll SDK API calls have completed, process terminated nominally.\n\n");
+	info("All SDK API calls have completed, process terminated nominally.\n");
 
 	exit(0);
 }
